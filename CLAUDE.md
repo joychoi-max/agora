@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**Neon Typing Game** (네온 타이핑 게임) — A Korean-language typing game built as a single-file web application. Players type falling Korean words before they reach the bottom of the screen. Created as a student project during an agora class.
+A collection of Korean-language browser games with a neon/cyberpunk aesthetic. Each game is a standalone single-file web application. Created as a student project during an agora class.
 
 ## Repository Structure
 
@@ -10,10 +10,11 @@
 agora/
 ├── CLAUDE.md            # This file — AI assistant guide
 ├── README.md            # Brief project description (Korean)
-└── typing-game.html     # Entire application (HTML + CSS + JS)
+├── typing-game.html     # 네온 타이핑 게임 (Korean typing game)
+└── snake-game.html      # 네온 스네이크 게임 (Snake game)
 ```
 
-This is a **single-file application**. All HTML, CSS, and JavaScript live in `typing-game.html` (~805 lines).
+Each game is a **single-file application** — all HTML, CSS, and JavaScript are self-contained in one `.html` file.
 
 ## Tech Stack
 
@@ -24,11 +25,15 @@ This is a **single-file application**. All HTML, CSS, and JavaScript live in `ty
 
 ## How to Run
 
-Open `typing-game.html` in any modern web browser. No build step, no server, no package manager required.
+Open any `.html` game file in a modern web browser. No build step, no server, no package manager required.
 
 ## Architecture
 
-The application is organized into three inline sections within `typing-game.html`:
+Each game follows the same single-file pattern with inline CSS and JavaScript.
+
+### typing-game.html (네온 타이핑 게임)
+
+The application is organized into three inline sections:
 
 | Section | Lines | Description |
 |---------|-------|-------------|
@@ -57,6 +62,31 @@ The application is organized into three inline sections within `typing-game.html
 - **Fall speed:** `max(8 - level * 0.5, 3)` seconds per word
 - **Lives:** 3 (displayed as hearts); missed word = lose 1 life
 - **Combo:** Increments on consecutive matches, resets on miss or no-match input
+
+### snake-game.html (네온 스네이크 게임)
+
+| Section | Description |
+|---------|-------------|
+| CSS | CSS variables, animations, neon glow effects, overlays, mobile controls |
+| HTML | HUD (score/high score/level), canvas, start/game-over overlays, mobile D-pad |
+| JavaScript | Game state, snake movement, food spawning, collision detection, rendering |
+
+**Key JavaScript Components:**
+- **`gameState` object** — Central state: snake segments, food position, direction, score, level, speed
+- **Core functions:**
+  - `startGame()` / `restartGame()` — Initialize and reset game state
+  - `tick()` — Main game loop: move snake, check collisions, eat food
+  - `draw()` — Canvas rendering: grid, snake with gradient body, food with glow, head eyes
+  - `spawnFood()` — Places food at random position not occupied by snake
+  - `togglePause()` — Pause/resume with P key
+  - `gameOver()` — Ends game, updates high score in localStorage
+
+**Game Mechanics:**
+- **Grid:** 20x20 cells, 20px each (400x400 canvas)
+- **Scoring:** 10 points per food
+- **Levels:** Level up every 50 points; speed increases by 5ms per level (min 60ms)
+- **Controls:** Arrow keys, WASD, or mobile D-pad
+- **High score:** Persisted in localStorage
 
 ### CSS Variables (Design Tokens)
 
@@ -89,7 +119,7 @@ No GitHub Actions, no deployment pipeline.
 
 ## Guidelines for AI Assistants
 
-1. **Single-file constraint:** Keep all code in `typing-game.html` unless the user explicitly requests splitting it into multiple files.
+1. **Single-file constraint:** Keep each game as a self-contained `.html` file unless the user explicitly requests splitting.
 2. **No unnecessary dependencies:** The project intentionally uses vanilla JS with no frameworks. Do not introduce npm, webpack, React, or similar unless explicitly asked.
 3. **Korean UI:** All user-facing text should remain in Korean. Code identifiers stay in English.
 4. **Preserve the neon aesthetic:** CSS uses a consistent neon/cyberpunk color scheme via CSS variables. Respect this when adding UI elements.
