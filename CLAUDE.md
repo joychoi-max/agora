@@ -21,7 +21,7 @@ Each game is a **single-file application** — all HTML, CSS, and JavaScript are
 - **HTML5** — Document structure and game UI
 - **CSS3** — Styling, animations (neon aesthetic, particle effects, glass-morphism)
 - **Vanilla JavaScript (ES6+)** — Game logic, no frameworks or libraries
-- **External dependency:** Google Fonts (Orbitron, Noto Sans KR)
+- **External dependencies:** Google Fonts (Orbitron, Noto Sans KR), Supabase JS Client (CDN)
 
 ## How to Run
 
@@ -93,6 +93,46 @@ The application is organized into three inline sections:
 Defined in `:root` at the top of the `<style>` block:
 - `--neon-pink`, `--neon-cyan`, `--neon-purple`, `--neon-yellow`, `--neon-green`
 - `--dark-bg`, `--darker-bg`
+
+## Supabase (게임 기록 저장)
+
+Both games save scores to a shared Supabase `game_records` table and display a leaderboard.
+
+### Setup
+
+1. [Supabase](https://supabase.com)에서 프로젝트 생성
+2. SQL Editor에서 아래 SQL 실행:
+
+```sql
+create table game_records (
+  id bigint generated always as identity primary key,
+  game_name text not null,
+  player_name text not null default '익명',
+  score integer not null,
+  level integer not null default 1,
+  created_at timestamptz not null default now()
+);
+
+-- 누구나 읽기 가능
+alter table game_records enable row level security;
+create policy "Anyone can read records" on game_records for select using (true);
+create policy "Anyone can insert records" on game_records for insert with check (true);
+
+-- 성능을 위한 인덱스
+create index idx_game_records_leaderboard on game_records (game_name, score desc);
+```
+
+3. 각 HTML 파일 상단의 `SUPABASE_URL`과 `SUPABASE_ANON_KEY`를 본인 프로젝트 값으로 변경:
+```js
+const SUPABASE_URL = 'https://YOUR_PROJECT_ID.supabase.co';
+const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY';
+```
+
+### How It Works
+
+- **게임 오버 시** `game_records` 테이블에 `{ game_name, player_name, score, level }` 자동 저장
+- **시작 화면 / 게임 오버 화면**에 Top 10 리더보드 표시
+- Supabase 미설정 시에도 게임은 정상 작동 (리더보드만 비활성)
 
 ## Development Conventions
 

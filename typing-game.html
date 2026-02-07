@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>네온 타이핑 게임 | Neon Typing</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
             --neon-pink: #ff006e;
@@ -427,6 +428,80 @@
             animation: comboPopup 1s ease-out;
         }
         
+        /* Leaderboard */
+        .leaderboard {
+            margin-top: 1.5rem;
+            width: 320px;
+            max-height: 220px;
+            overflow-y: auto;
+        }
+
+        .leaderboard h3 {
+            font-size: 0.9rem;
+            color: var(--neon-cyan);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 0.8rem;
+            text-shadow: 0 0 10px var(--neon-cyan);
+        }
+
+        .leaderboard-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.4rem 0.8rem;
+            font-family: 'Noto Sans KR', sans-serif;
+            font-size: 0.85rem;
+            border-bottom: 1px solid rgba(0, 245, 255, 0.1);
+        }
+
+        .leaderboard-row:nth-child(2) { color: var(--neon-yellow); }
+        .leaderboard-row:nth-child(3) { color: var(--neon-green); }
+        .leaderboard-row:nth-child(4) { color: var(--neon-pink); }
+
+        .leaderboard-rank { width: 30px; }
+        .leaderboard-name { flex: 1; text-align: left; margin-left: 8px; }
+        .leaderboard-score { width: 70px; text-align: right; }
+        .leaderboard-loading {
+            font-family: 'Noto Sans KR', sans-serif;
+            font-size: 0.8rem;
+            color: rgba(0, 245, 255, 0.5);
+            padding: 1rem;
+        }
+
+        /* Player name input */
+        .name-input-area {
+            margin-bottom: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .name-input-area label {
+            font-family: 'Noto Sans KR', sans-serif;
+            font-size: 0.85rem;
+            color: rgba(0, 245, 255, 0.7);
+        }
+
+        .name-input {
+            width: 200px;
+            padding: 0.6rem 1rem;
+            font-size: 1rem;
+            font-family: 'Noto Sans KR', sans-serif;
+            background: rgba(10, 10, 15, 0.7);
+            border: 2px solid var(--neon-purple);
+            border-radius: 25px;
+            color: var(--neon-cyan);
+            outline: none;
+            text-align: center;
+            box-shadow: 0 0 15px rgba(131, 56, 236, 0.3);
+        }
+
+        .name-input:focus {
+            border-color: var(--neon-cyan);
+            box-shadow: 0 0 20px rgba(0, 245, 255, 0.4);
+        }
+
         @keyframes comboPopup {
             0% {
                 opacity: 0;
@@ -449,16 +524,23 @@
         <div id="start-screen">
             <h1>네온 타이핑 게임</h1>
             <p>떨어지는 단어를 빠르게 타이핑하세요!</p>
+            <div class="name-input-area">
+                <label for="player-name">플레이어 이름</label>
+                <input type="text" id="player-name" class="name-input" placeholder="이름 입력..." maxlength="12" />
+            </div>
             <button id="start-button" type="button">
                 <span style="position: relative; z-index: 1;">게임 시작</span>
             </button>
+            <div class="leaderboard" id="start-leaderboard"></div>
         </div>
         
         <!-- Game Over Screen -->
         <div id="game-over-screen">
             <h2>GAME OVER</h2>
             <div id="final-score"></div>
+            <div id="save-status" style="font-family:'Noto Sans KR',sans-serif;font-size:0.85rem;color:var(--neon-green);margin-bottom:1rem;"></div>
             <button id="restart-button" type="button">다시 시작</button>
+            <div class="leaderboard" id="gameover-leaderboard"></div>
         </div>
         
         <!-- Header -->
@@ -509,6 +591,73 @@
     </div>
     
     <script>
+        // ===== Supabase Configuration =====
+        // TODO: 아래 값을 본인의 Supabase 프로젝트 설정으로 변경하세요
+        const SUPABASE_URL = 'https://YOUR_PROJECT_ID.supabase.co';
+        const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY';
+        const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+        // ===== Leaderboard Functions =====
+        async function loadLeaderboard(containerId) {
+            const container = document.getElementById(containerId);
+            if (!supabase || SUPABASE_URL.includes('YOUR_PROJECT_ID')) {
+                container.innerHTML = '<div class="leaderboard-loading">Supabase 설정 필요 (CLAUDE.md 참고)</div>';
+                return;
+            }
+            container.innerHTML = '<div class="leaderboard-loading">순위 로딩중...</div>';
+            try {
+                const { data, error } = await supabase
+                    .from('game_records')
+                    .select('player_name, score, level')
+                    .eq('game_name', 'typing')
+                    .order('score', { ascending: false })
+                    .limit(10);
+                if (error) throw error;
+                renderLeaderboard(container, data);
+            } catch (e) {
+                container.innerHTML = '<div class="leaderboard-loading">순위를 불러올 수 없습니다</div>';
+            }
+        }
+
+        function renderLeaderboard(container, rows) {
+            if (!rows || rows.length === 0) {
+                container.innerHTML = '<div class="leaderboard-loading">아직 기록이 없습니다</div>';
+                return;
+            }
+            let html = '<h3>리더보드</h3>';
+            rows.forEach((row, i) => {
+                html += `<div class="leaderboard-row">
+                    <span class="leaderboard-rank">${i + 1}.</span>
+                    <span class="leaderboard-name">${row.player_name || '???'}</span>
+                    <span class="leaderboard-score">${row.score}</span>
+                </div>`;
+            });
+            container.innerHTML = html;
+        }
+
+        async function saveScore(score, level) {
+            const statusEl = document.getElementById('save-status');
+            const playerName = document.getElementById('player-name').value.trim() || '익명';
+            if (!supabase || SUPABASE_URL.includes('YOUR_PROJECT_ID')) {
+                statusEl.textContent = '';
+                return;
+            }
+            statusEl.textContent = '기록 저장중...';
+            try {
+                const { error } = await supabase
+                    .from('game_records')
+                    .insert({ game_name: 'typing', player_name: playerName, score, level });
+                if (error) throw error;
+                statusEl.textContent = '기록 저장 완료!';
+                loadLeaderboard('gameover-leaderboard');
+            } catch (e) {
+                statusEl.textContent = '기록 저장 실패';
+            }
+        }
+
+        // Load leaderboard on page load
+        loadLeaderboard('start-leaderboard');
+
         // Game state
         const gameState = {
             score: 0,
@@ -776,17 +925,20 @@
         function gameOver() {
             gameState.isPlaying = false;
             typingInput.disabled = true;
-            
+
             // Clear intervals
             clearInterval(gameState.spawnInterval);
             clearInterval(gameState.checkInterval);
-            
+
             // Show game over screen
             finalScoreDisplay.textContent = `최종 점수: ${gameState.score}`;
             gameOverScreen.classList.add('show');
-            
+
             // Remove remaining words
             document.querySelectorAll('.falling-word').forEach(el => el.remove());
+
+            // Save score to Supabase
+            saveScore(gameState.score, gameState.level);
         }
         
         function updateDisplays() {
