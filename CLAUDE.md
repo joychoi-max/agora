@@ -10,10 +10,10 @@
 agora/
 ├── CLAUDE.md            # This file — AI assistant guide
 ├── README.md            # Brief project description (Korean)
-└── index.html     # Entire application (HTML + CSS + JS)
+└── typing-game.html     # Entire application (HTML + CSS + JS)
 ```
 
-This is a **single-file application**. All HTML, CSS, and JavaScript live in `index.html` (~805 lines).
+This is a **single-file application**. All HTML, CSS, and JavaScript live in `typing-game.html` (~805 lines).
 
 ## Tech Stack
 
@@ -24,11 +24,11 @@ This is a **single-file application**. All HTML, CSS, and JavaScript live in `in
 
 ## How to Run
 
-Open `index.html` in any modern web browser. No build step, no server, no package manager required.
+Open `typing-game.html` in any modern web browser. No build step, no server, no package manager required.
 
 ## Architecture
 
-The application is organized into three inline sections within `index.html`:
+The application is organized into three inline sections within `typing-game.html`:
 
 | Section | Lines | Description |
 |---------|-------|-------------|
@@ -89,7 +89,7 @@ No GitHub Actions, no deployment pipeline.
 
 ## Guidelines for AI Assistants
 
-1. **Single-file constraint:** Keep all code in `index.html` unless the user explicitly requests splitting it into multiple files.
+1. **Single-file constraint:** Keep all code in `typing-game.html` unless the user explicitly requests splitting it into multiple files.
 2. **No unnecessary dependencies:** The project intentionally uses vanilla JS with no frameworks. Do not introduce npm, webpack, React, or similar unless explicitly asked.
 3. **Korean UI:** All user-facing text should remain in Korean. Code identifiers stay in English.
 4. **Preserve the neon aesthetic:** CSS uses a consistent neon/cyberpunk color scheme via CSS variables. Respect this when adding UI elements.
