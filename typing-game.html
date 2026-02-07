@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>네온 타이핑 게임 | Neon Typing</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-pink: #ff006e;
+            --neon-cyan: #00f5ff;
+            --neon-purple: #8338ec;
+            --neon-yellow: #ffbe0b;
+            --neon-green: #06ffa5;
+            --dark-bg: #0a0a0f;
+            --darker-bg: #050508;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Orbitron', 'Noto Sans KR', sans-serif;
+            background: linear-gradient(135deg, var(--darker-bg) 0%, var(--dark-bg) 100%);
+            color: var(--neon-cyan);
+            overflow: hidden;
+            height: 100vh;
+            position: relative;
+        }
+        
+        /* Animated background grid */
+        body::before {
+            content: '';
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            background-image: 
+                linear-gradient(0deg, transparent 24%, rgba(0, 245, 255, 0.05) 25%, rgba(0, 245, 255, 0.05) 26%, transparent 27%, transparent 74%, rgba(0, 245, 255, 0.05) 75%, rgba(0, 245, 255, 0.05) 76%, transparent 77%, transparent),
+                linear-gradient(90deg, transparent 24%, rgba(0, 245, 255, 0.05) 25%, rgba(0, 245, 255, 0.05) 26%, transparent 27%, transparent 74%, rgba(0, 245, 255, 0.05) 75%, rgba(0, 245, 255, 0.05) 76%, transparent 77%, transparent);
+            background-size: 50px 50px;
+            animation: gridMove 20s linear infinite;
+            pointer-events: none;
+        }
+        
+        @keyframes gridMove {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(50px, 50px); }
+        }
+        
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Header */
+        #game-header {
+            padding: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(180deg, rgba(131, 56, 236, 0.1) 0%, transparent 100%);
+            border-bottom: 2px solid rgba(0, 245, 255, 0.3);
+            backdrop-filter: blur(10px);
+            z-index: 100;
+        }
+        
+        #game-title {
+            font-size: 2.5rem;
+            font-weight: 900;
+            background: linear-gradient(45deg, var(--neon-pink), var(--neon-cyan), var(--neon-purple));
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: gradientShift 3s ease infinite;
+            text-shadow: 0 0 30px rgba(255, 0, 110, 0.5);
+            letter-spacing: 3px;
+        }
+        
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        
+        #stats {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+        
+        .stat {
+            text-align: center;
+        }
+        
+        .stat-label {
+            font-size: 0.7rem;
+            color: var(--neon-cyan);
+            opacity: 0.7;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 0.3rem;
+        }
+        
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--neon-yellow);
+            text-shadow: 0 0 20px var(--neon-yellow);
+        }
+        
+        #lives {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .heart {
+            width: 30px;
+            height: 30px;
+            color: var(--neon-pink);
+            filter: drop-shadow(0 0 10px var(--neon-pink));
+            transition: all 0.3s ease;
+        }
+        
+        .heart.lost {
+            opacity: 0.2;
+            filter: none;
+        }
+        
+        /* Game area */
+        #game-area {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* Falling words */
+        .falling-word {
+            position: absolute;
+            font-size: 2rem;
+            font-weight: 700;
+            padding: 1rem 1.5rem;
+            background: linear-gradient(135deg, rgba(131, 56, 236, 0.3), rgba(255, 0, 110, 0.3));
+            border: 2px solid var(--neon-purple);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            box-shadow: 
+                0 0 30px rgba(131, 56, 236, 0.6),
+                inset 0 0 20px rgba(255, 255, 255, 0.1);
+            animation: fall linear;
+            transition: all 0.2s ease;
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+        
+        .falling-word.matched {
+            color: var(--neon-green);
+            border-color: var(--neon-green);
+            box-shadow: 0 0 40px var(--neon-green);
+        }
+        
+        @keyframes fall {
+            from {
+                transform: translateY(-100px) rotate(0deg);
+                opacity: 0;
+            }
+            5% {
+                opacity: 1;
+            }
+            95% {
+                opacity: 1;
+            }
+            to {
+                transform: translateY(100vh) rotate(5deg);
+                opacity: 0;
+            }
+        }
+        
+        /* Input area */
+        #input-area {
+            padding: 2rem;
+            background: linear-gradient(0deg, rgba(131, 56, 236, 0.15) 0%, transparent 100%);
+            border-top: 2px solid rgba(0, 245, 255, 0.3);
+            backdrop-filter: blur(10px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        #typing-input {
+            width: 500px;
+            padding: 1.2rem 2rem;
+            font-size: 1.5rem;
+            font-family: 'Noto Sans KR', sans-serif;
+            background: rgba(10, 10, 15, 0.7);
+            border: 3px solid var(--neon-cyan);
+            border-radius: 50px;
+            color: var(--neon-cyan);
+            outline: none;
+            text-align: center;
+            box-shadow: 
+                0 0 30px rgba(0, 245, 255, 0.4),
+                inset 0 0 20px rgba(0, 245, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        #typing-input:focus {
+            border-color: var(--neon-pink);
+            box-shadow: 
+                0 0 40px rgba(255, 0, 110, 0.6),
+                inset 0 0 20px rgba(255, 0, 110, 0.2);
+            transform: scale(1.05);
+        }
+        
+        #typing-input::placeholder {
+            color: rgba(0, 245, 255, 0.4);
+        }
+        
+        /* Start screen */
+        #start-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(5, 5, 8, 0.95);
+            backdrop-filter: blur(20px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        #start-screen.hidden {
+            display: none;
+        }
+        
+        #start-screen h1 {
+            font-size: 4rem;
+            font-weight: 900;
+            margin-bottom: 1rem;
+            background: linear-gradient(45deg, var(--neon-pink), var(--neon-cyan));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 50px rgba(255, 0, 110, 0.5);
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        #start-screen p {
+            font-size: 1.2rem;
+            color: var(--neon-cyan);
+            margin-bottom: 3rem;
+            opacity: 0.8;
+        }
+        
+        #start-button {
+            padding: 1.5rem 4rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            font-family: 'Orbitron', sans-serif;
+            background: linear-gradient(135deg, var(--neon-pink), var(--neon-purple));
+            border: 3px solid var(--neon-cyan);
+            border-radius: 50px;
+            color: white;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            box-shadow: 
+                0 0 40px rgba(255, 0, 110, 0.6),
+                0 10px 30px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        #start-button::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+        
+        #start-button:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+        
+        #start-button:hover {
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 
+                0 0 60px rgba(255, 0, 110, 0.8),
+                0 15px 40px rgba(0, 0, 0, 0.6);
+        }
+        
+        #start-button:active {
+            transform: translateY(-2px) scale(1.02);
+        }
+        
+        /* Game over screen */
+        #game-over-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(5, 5, 8, 0.95);
+            backdrop-filter: blur(20px);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        #game-over-screen.show {
+            display: flex;
+        }
+        
+        #game-over-screen h2 {
+            font-size: 4rem;
+            color: var(--neon-pink);
+            margin-bottom: 2rem;
+            text-shadow: 0 0 50px var(--neon-pink);
+            animation: glitch 1s ease infinite;
+        }
+        
+        @keyframes glitch {
+            0%, 100% { transform: translate(0); }
+            20% { transform: translate(-2px, 2px); }
+            40% { transform: translate(-2px, -2px); }
+            60% { transform: translate(2px, 2px); }
+            80% { transform: translate(2px, -2px); }
+        }
+        
+        #final-score {
+            font-size: 3rem;
+            color: var(--neon-yellow);
+            margin-bottom: 3rem;
+            text-shadow: 0 0 30px var(--neon-yellow);
+        }
+        
+        #restart-button {
+            padding: 1.5rem 4rem;
+            font-size: 1.3rem;
+            font-weight: 700;
+            font-family: 'Orbitron', sans-serif;
+            background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple));
+            border: 3px solid var(--neon-pink);
+            border-radius: 50px;
+            color: white;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            box-shadow: 0 0 40px rgba(0, 245, 255, 0.6);
+            transition: all 0.3s ease;
+        }
+        
+        #restart-button:hover {
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 0 60px rgba(0, 245, 255, 0.8);
+        }
+        
+        /* Particle effects */
+        .particle {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: var(--neon-cyan);
+            border-radius: 50%;
+            pointer-events: none;
+            animation: particleFloat 2s ease-out forwards;
+            box-shadow: 0 0 20px var(--neon-cyan);
+        }
+        
+        @keyframes particleFloat {
+            0% {
+                transform: translate(0, 0) scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(var(--x), var(--y)) scale(0);
+                opacity: 0;
+            }
+        }
+        
+        /* Combo indicator */
+        #combo-indicator {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 3rem;
+            font-weight: 900;
+            color: var(--neon-green);
+            text-shadow: 0 0 50px var(--neon-green);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 999;
+        }
+        
+        #combo-indicator.show {
+            animation: comboPopup 1s ease-out;
+        }
+        
+        @keyframes comboPopup {
+            0% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.5);
+            }
+            50% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1.2);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(-50%, -60%) scale(1);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <!-- Start Screen -->
+        <div id="start-screen">
+            <h1>네온 타이핑 게임</h1>
+            <p>떨어지는 단어를 빠르게 타이핑하세요!</p>
+            <button id="start-button" type="button">
+                <span style="position: relative; z-index: 1;">게임 시작</span>
+            </button>
+        </div>
+        
+        <!-- Game Over Screen -->
+        <div id="game-over-screen">
+            <h2>GAME OVER</h2>
+            <div id="final-score"></div>
+            <button id="restart-button" type="button">다시 시작</button>
+        </div>
+        
+        <!-- Header -->
+        <div id="game-header">
+            <div id="game-title">NEON TYPING</div>
+            <div id="stats">
+                <div class="stat">
+                    <div class="stat-label">Score</div>
+                    <div class="stat-value" id="score">0</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Level</div>
+                    <div class="stat-value" id="level">1</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Lives</div>
+                    <div id="lives">
+                        <svg class="heart" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                        </svg>
+                        <svg class="heart" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                        </svg>
+                        <svg class="heart" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Game Area -->
+        <div id="game-area"></div>
+        
+        <!-- Input Area -->
+        <div id="input-area">
+            <input 
+                type="text" 
+                id="typing-input" 
+                placeholder="여기에 입력하세요..."
+                autocomplete="off"
+                disabled
+            />
+        </div>
+        
+        <!-- Combo Indicator -->
+        <div id="combo-indicator"></div>
+    </div>
+    
+    <script>
+        // Game state
+        const gameState = {
+            score: 0,
+            level: 1,
+            lives: 3,
+            isPlaying: false,
+            words: [],
+            wordId: 0,
+            combo: 0,
+            spawnInterval: null,
+            checkInterval: null
+        };
+        
+        // Korean words for the game
+        const wordBank = [
+            '행복', '사랑', '희망', '꿈', '미래', '성공', '도전', '열정',
+            '자유', '평화', '우정', '믿음', '용기', '지혜', '감사', '배려',
+            '노력', '인내', '긍정', '창조', '변화', '성장', '목표', '가치',
+            '진실', '정직', '책임', '존중', '배움', '나눔', '소통', '화합',
+            '건강', '활력', '에너지', '집중', '효율', '혁신', '기회', '발전',
+            '완성', '승리', '기쁨', '웃음', '축복', '선물', '추억', '여행',
+            '음악', '예술', '아름다움', '자연', '하늘', '별', '달', '햇살',
+            '바람', '구름', '무지개', '꽃', '나무', '새', '물', '산',
+            '바다', '강', '호수', '섬', '길', '여정', '모험', '탐험'
+        ];
+        
+        // DOM elements
+        const startScreen = document.getElementById('start-screen');
+        const gameOverScreen = document.getElementById('game-over-screen');
+        const startButton = document.getElementById('start-button');
+        const restartButton = document.getElementById('restart-button');
+        const typingInput = document.getElementById('typing-input');
+        const gameArea = document.getElementById('game-area');
+        const scoreDisplay = document.getElementById('score');
+        const levelDisplay = document.getElementById('level');
+        const hearts = document.querySelectorAll('.heart');
+        const finalScoreDisplay = document.getElementById('final-score');
+        const comboIndicator = document.getElementById('combo-indicator');
+        
+        // Start game
+        startButton.addEventListener('click', startGame);
+        restartButton.addEventListener('click', restartGame);
+        
+        function startGame() {
+            startScreen.classList.add('hidden');
+            typingInput.disabled = false;
+            typingInput.focus();
+            gameState.isPlaying = true;
+            
+            // Start spawning words
+            spawnWord();
+            gameState.spawnInterval = setInterval(spawnWord, 2000 / gameState.level);
+            
+            // Check for missed words
+            gameState.checkInterval = setInterval(checkMissedWords, 100);
+        }
+        
+        function restartGame() {
+            // Reset game state
+            gameState.score = 0;
+            gameState.level = 1;
+            gameState.lives = 3;
+            gameState.combo = 0;
+            gameState.words = [];
+            
+            // Clear intervals
+            if (gameState.spawnInterval) clearInterval(gameState.spawnInterval);
+            if (gameState.checkInterval) clearInterval(gameState.checkInterval);
+            
+            // Remove all falling words
+            document.querySelectorAll('.falling-word').forEach(el => el.remove());
+            
+            // Update displays
+            updateDisplays();
+            hearts.forEach(heart => heart.classList.remove('lost'));
+            
+            // Hide game over screen
+            gameOverScreen.classList.remove('show');
+            
+            // Start game
+            startGame();
+        }
+        
+        function spawnWord() {
+            if (!gameState.isPlaying) return;
+            
+            const word = wordBank[Math.floor(Math.random() * wordBank.length)];
+            const wordId = gameState.wordId++;
+            
+            const wordElement = document.createElement('div');
+            wordElement.className = 'falling-word';
+            wordElement.textContent = word;
+            wordElement.dataset.word = word;
+            wordElement.dataset.id = wordId;
+            
+            // Random horizontal position
+            const leftPosition = Math.random() * (window.innerWidth - 200) + 50;
+            wordElement.style.left = leftPosition + 'px';
+            
+            // Animation duration based on level
+            const duration = Math.max(8 - gameState.level * 0.5, 3);
+            wordElement.style.animationDuration = duration + 's';
+            
+            gameArea.appendChild(wordElement);
+            
+            // Track word
+            gameState.words.push({
+                id: wordId,
+                word: word,
+                element: wordElement,
+                startTime: Date.now(),
+                duration: duration * 1000
+            });
+            
+            // Remove word after animation
+            setTimeout(() => {
+                if (wordElement.parentElement) {
+                    loseLife();
+                    wordElement.remove();
+                    gameState.words = gameState.words.filter(w => w.id !== wordId);
+                }
+            }, duration * 1000);
+        }
+        
+        // Typing input handler
+        typingInput.addEventListener('input', (e) => {
+            const input = e.target.value.trim();
+            
+            if (input === '') return;
+            
+            // Check if input matches any falling word
+            const matchedWord = gameState.words.find(w => w.word === input);
+            
+            if (matchedWord) {
+                // Match found!
+                destroyWord(matchedWord);
+                typingInput.value = '';
+                
+                // Add score
+                const basePoints = 100;
+                const levelBonus = gameState.level * 50;
+                const comboBonus = gameState.combo * 25;
+                const totalPoints = basePoints + levelBonus + comboBonus;
+                
+                gameState.score += totalPoints;
+                gameState.combo++;
+                
+                // Show combo
+                if (gameState.combo > 2) {
+                    showCombo();
+                }
+                
+                // Level up
+                if (gameState.score >= gameState.level * 1000) {
+                    levelUp();
+                }
+                
+                updateDisplays();
+            } else {
+                // Check if any word starts with this input
+                const partialMatch = gameState.words.some(w => w.word.startsWith(input));
+                
+                if (partialMatch) {
+                    // Highlight matching words
+                    gameState.words.forEach(w => {
+                        if (w.word.startsWith(input)) {
+                            w.element.classList.add('matched');
+                        } else {
+                            w.element.classList.remove('matched');
+                        }
+                    });
+                } else {
+                    // No match - reset combo
+                    gameState.combo = 0;
+                    gameState.words.forEach(w => w.element.classList.remove('matched'));
+                }
+            }
+        });
+        
+        function destroyWord(wordData) {
+            // Create particles
+            createParticles(wordData.element);
+            
+            // Remove word
+            wordData.element.remove();
+            gameState.words = gameState.words.filter(w => w.id !== wordData.id);
+        }
+        
+        function createParticles(element) {
+            const rect = element.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            
+            const colors = ['var(--neon-cyan)', 'var(--neon-pink)', 'var(--neon-purple)', 'var(--neon-yellow)', 'var(--neon-green)'];
+            
+            for (let i = 0; i < 20; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = centerX + 'px';
+                particle.style.top = centerY + 'px';
+                particle.style.background = colors[Math.floor(Math.random() * colors.length)];
+                
+                const angle = (Math.PI * 2 * i) / 20;
+                const velocity = 100 + Math.random() * 100;
+                const x = Math.cos(angle) * velocity;
+                const y = Math.sin(angle) * velocity;
+                
+                particle.style.setProperty('--x', x + 'px');
+                particle.style.setProperty('--y', y + 'px');
+                
+                document.body.appendChild(particle);
+                
+                setTimeout(() => particle.remove(), 2000);
+            }
+        }
+        
+        function showCombo() {
+            comboIndicator.textContent = `${gameState.combo}x COMBO!`;
+            comboIndicator.classList.remove('show');
+            void comboIndicator.offsetWidth; // Trigger reflow
+            comboIndicator.classList.add('show');
+            
+            setTimeout(() => {
+                comboIndicator.classList.remove('show');
+            }, 1000);
+        }
+        
+        function checkMissedWords() {
+            // This is handled in the setTimeout in spawnWord
+        }
+        
+        function loseLife() {
+            if (!gameState.isPlaying) return;
+            
+            gameState.lives--;
+            gameState.combo = 0;
+            
+            // Update hearts
+            if (gameState.lives >= 0) {
+                hearts[gameState.lives].classList.add('lost');
+            }
+            
+            if (gameState.lives <= 0) {
+                gameOver();
+            }
+        }
+        
+        function levelUp() {
+            gameState.level++;
+            
+            // Clear and restart spawn interval with new speed
+            clearInterval(gameState.spawnInterval);
+            gameState.spawnInterval = setInterval(spawnWord, Math.max(2000 / gameState.level, 500));
+            
+            // Visual feedback
+            const levelDisplay = document.getElementById('level');
+            levelDisplay.style.transform = 'scale(1.5)';
+            setTimeout(() => {
+                levelDisplay.style.transform = 'scale(1)';
+            }, 300);
+            
+            updateDisplays();
+        }
+        
+        function gameOver() {
+            gameState.isPlaying = false;
+            typingInput.disabled = true;
+            
+            // Clear intervals
+            clearInterval(gameState.spawnInterval);
+            clearInterval(gameState.checkInterval);
+            
+            // Show game over screen
+            finalScoreDisplay.textContent = `최종 점수: ${gameState.score}`;
+            gameOverScreen.classList.add('show');
+            
+            // Remove remaining words
+            document.querySelectorAll('.falling-word').forEach(el => el.remove());
+        }
+        
+        function updateDisplays() {
+            scoreDisplay.textContent = gameState.score;
+            levelDisplay.textContent = gameState.level;
+        }
+        
+        // Prevent input from losing focus
+        document.addEventListener('click', () => {
+            if (gameState.isPlaying) {
+                typingInput.focus();
+            }
+        });
+    </script>
+</body>
+</html>
